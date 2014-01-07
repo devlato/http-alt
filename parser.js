@@ -14,12 +14,15 @@ function Parser (cb) {
     this.request = new Request;
     this.response = new Response;
     this.state = states.GET;
+    this.lastIndex = 0;
     this.cb = cb;
 }
 
 Parser.prototype._prepareRequest = function () {
+    this.state = states.BODY;
     var req = this.request;
     var res = this.response;
+    this._prev = null;
     this.cb(req, res);
 };
 
@@ -27,15 +30,21 @@ Parser.prototype._read = function (size) {
 };
 
 Parser.prototype._write = function (buf, enc, next) {
-    var lastIndex = 0;
     var keyName;
     var req = this.request;
     
-    for (var i = 0, len = buf.length; i < len; i++) {
-        if ((i >= 2 && buf[i] === 0x0a && buf[i-1] === 0x0a)
-        || (i >= 3 && buf[i] === 0x0a && buf[i-1] === 0x0d
-        && buf[i-2] === 0x0a)) {
-            this.state = states.BODY;
+    var i = 0;
+    if (this._prev) {
+        buf = Buffer.concat([ this._prev, buf ]);
+        i = this._prev.length;
+        this._prev = null;
+    }
+    for (var len = buf.length; i < len; i++) {
+        if (i >= 1 && buf[i] === 0x0a && buf[i-1] === 0x0a) {
+            this._prepareRequest();
+        }
+        if (i >= 2 && buf[i] === 0x0a && buf[i-1] === 0x0d
+        && buf[i-2] === 0x0a) {
             this._prepareRequest();
         }
         else if (buf[i] === 0x0a) {
@@ -45,23 +54,28 @@ Parser.prototype._write = function (buf, enc, next) {
                 req._setUrl(parts[1]);
                 req._setVersion(parts[2]);
                 this.state = states.KEY;
-                lastIndex = i;
+                this.lastIndex = i;
             }
             else if (this.state === states.VALUE) {
-                req._setHeader(keyName, buf.slice(lastIndex, i));
+                req._setHeader(keyName, buf.slice(this.lastIndex, i));
                 keyName = null;
-                lastIndex = i;
+                this.lastIndex = i;
                 this.state = states.KEY;
             }
             else if (this.state === states.KEY) {
-                lastIndex = i;
+                this.lastIndex = i;
             }
         }
         else if (this.state === states.KEY && buf[i] === 58) {
-            keyName = buf.slice(lastIndex, i);
-            lastIndex = i + 1;
+            keyName = buf.slice(this.lastIndex, i);
+            this.lastIndex = i + 1;
             this.state = states.VALUE;
         }
     }
+    
+    if (this.state !== states.BODY) {
+        this._prev = buf;
+    }
+    
     next();
 };
