@@ -18,9 +18,19 @@ function Parser (cb) {
 }
 
 Parser.prototype._prepareRequest = function () {
+    var self = this;
     this._state = states.BODY;
     var req = this.request;
     var res = this.response = new Response(req);
+    res._onfinish = function () {
+        if (res._buffer) {
+            var buf = res._buffer
+            res._buffer = null;
+            self.push(buf);
+        }
+        self.push(null);
+    };
+    
     this._prev = null;
     this._cb(req, res);
     
@@ -57,9 +67,6 @@ Parser.prototype._read = function () {
     }
     else {
         res._ondata = function () { self._read() };
-    }
-    if (res && res._finished) {
-        this.push(null);
     }
 };
 

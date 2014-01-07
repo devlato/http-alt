@@ -71,7 +71,7 @@ Response.prototype._getHeaderBuffer = function () {
     var lines = [
         'HTTP/' + req.httpVersion + ' ' + code + ' '
         + (this.statusMessage || STATUS_CODES[code])
-    ]
+    ];
     
     for (var i = 0, len = keys.length; i < len; i++) {
         var key = keys[i];
@@ -119,4 +119,6 @@ Response.prototype._finishEncode = function () {
         this._buffer = ZEROCRLFx2;
     }
     if (this._ondata) this._ondata();
+    
+    if (this._onfinish) this._onfinish();
 };
