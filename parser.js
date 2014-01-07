@@ -60,7 +60,6 @@ Parser.prototype._read = function () {
     }
     if (res && res._finished) {
         this.push(null);
-        this.emit('complete');
     }
 };
 

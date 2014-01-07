@@ -9,8 +9,9 @@ var STATUS_CODES = {
     // ...etc...
 };
 
-var TRAILING_CHUNKED = Buffer('0\r\n\r\n');
+var ZEROCRLFx2 = Buffer('0\r\n\r\n');
 var CRLF = Buffer('\r\n');
+var CRLFx2 = Buffer('\r\n\r\n');
 
 function Response (req) {
     Writable.call(this);
@@ -108,14 +109,14 @@ Response.prototype._finishEncode = function () {
     if (this._buffer) {
         // does this case ever happen?
         if (Array.isArray(this._buffer)) {
-            this._buffer.push(TRAILING_CHUNKED);
+            this._buffer.push(ZEROCRLFx2);
         }
         else {
-            this._buffer = [ this._buffer, TRAILING_CHUNKED ];
+            this._buffer = [ this._buffer, ZEROCRLFx2 ];
         }
     }
     else {
-        this._buffer = TRAILING_CHUNKED;
+        this._buffer = ZEROCRLFx2;
     }
     if (this._ondata) this._ondata();
 };
