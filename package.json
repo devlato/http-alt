@@ -1,0 +1,23 @@
+{
+  "name": "http-alt",
+  "version": "0.0.0",
+  "description": "alternative implementation of the core node http server",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/http-alt.git"
+  },
+  "homepage": "https://github.com/substack/http-alt",
+  "keywords": [
+    "http",
+    "server",
+    "pure",
+    "javascript"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT"
+}

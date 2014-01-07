@@ -1,6 +1,6 @@
 var net = require('net');
 var Parser = require('./parser.js');
-var inherits = require('inherits');
+var inherits = require('util').inherits;
 var EventEmitter = require('events').EventEmitter;
 
 exports.createServer = function (cb) {
