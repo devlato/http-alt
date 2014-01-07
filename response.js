@@ -50,7 +50,7 @@ Response.prototype._getHeaderBuffer = function () {
         lines.push(this._headerKeys[key] + ': ' + this._headers[key]);
     }
     
-    return Buffer(lines.join('\n') + '\n\n');
+    return Buffer(lines.join('\r\n') + '\r\n\r\n');
 }
 
 Response.prototype._write = function (buf, enc, next) {
