@@ -7,7 +7,7 @@ var Response = require('./response.js');
 module.exports = Parser;
 inherits(Parser, Duplex);
 
-var states = { GET: 0, KEY: 1, VALUE: 2 };
+var states = { GET: 0, KEY: 1, VALUE: 2, BODY: 3 };
 
 function Parser (cb) {
     Duplex.call(this);
@@ -35,31 +35,32 @@ Parser.prototype._write = function (buf, enc, next) {
         if ((i >= 2 && buf[i] === 0x0a && buf[i-1] === 0x0a)
         || (i >= 3 && buf[i] === 0x0a && buf[i-1] === 0x0d
         && buf[i-2] === 0x0a)) {
+            this.state = states.BODY;
             this._prepareRequest();
         }
         else if (buf[i] === 0x0a) {
-            if (this._state === states.GET) {
+            if (this.state === states.GET) {
                 var parts = buf.slice(0, i).toString('utf8').split(' ');
                 req._setMethod(parts[0]);
                 req._setUrl(parts[1]);
                 req._setVersion(parts[2]);
-                this._state = states.KEY;
+                this.state = states.KEY;
                 lastIndex = i;
             }
-            else if (this._state === states.VALUE) {
+            else if (this.state === states.VALUE) {
                 req._setHeader(keyName, buf.slice(lastIndex, i));
                 keyName = null;
                 lastIndex = i;
-                this._state = states.KEY;
+                this.state = states.KEY;
             }
-            else if (this._state === states.KEY) {
+            else if (this.state === states.KEY) {
                 lastIndex = i;
             }
         }
-        else if (this._state === states.KEY && buf[i] === 58) {
+        else if (this.state === states.KEY && buf[i] === 58) {
             keyName = buf.slice(lastIndex, i);
             lastIndex = i + 1;
-            this._state = states.VALUE;
+            this.state = states.VALUE;
         }
     }
     next();
