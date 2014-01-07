@@ -12,7 +12,6 @@ var states = { GET: 0, KEY: 1, VALUE: 2, BODY: 3 };
 function Parser (cb) {
     Duplex.call(this);
     this.request = new Request;
-    this.response = new Response;
     this._state = states.GET;
     this._lastIndex = 0;
     this._cb = cb;
@@ -21,7 +20,7 @@ function Parser (cb) {
 Parser.prototype._prepareRequest = function () {
     this._state = states.BODY;
     var req = this.request;
-    var res = this.response;
+    var res = this.response = new Response(req);
     this._prev = null;
     this._cb(req, res);
     
@@ -32,13 +31,28 @@ Parser.prototype._prepareRequest = function () {
 };
 
 Parser.prototype._read = function () {
+    var self = this;
     var res = this.response;
-    if (this._state !== states.BODY) {
+    
+    if (!res) {
         this._ready = true;
     }
     else if (res._buffer) {
+        var buf = res._buffer;
+        var next = res._next;
+        
+        res._buffer = null;
+        res._next = null;
+        
+        if (!res._sentHeader) {
+            this.push(res._getHeader());
+        }
         this.push(res._buffer);
-        res._next();
+        next();
+    }
+    else {
+        res._ondata = function () { self._read() };
+        console.log('what now?');
     }
 };
 
