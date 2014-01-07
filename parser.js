@@ -13,26 +13,42 @@ function Parser (cb) {
     Duplex.call(this);
     this.request = new Request;
     this.response = new Response;
-    this.state = states.GET;
-    this.lastIndex = 0;
-    this.cb = cb;
+    this._state = states.GET;
+    this._lastIndex = 0;
+    this._cb = cb;
 }
 
 Parser.prototype._prepareRequest = function () {
-    this.state = states.BODY;
+    this._state = states.BODY;
     var req = this.request;
     var res = this.response;
     this._prev = null;
-    this.cb(req, res);
+    this._cb(req, res);
+    
+    if (this._ready) {
+        this._ready = false;
+        this._read();
+    }
 };
 
-Parser.prototype._read = function (size) {
+Parser.prototype._read = function () {
+    var res = this.response;
+    if (this._state !== states.BODY) {
+        this._ready = true;
+    }
+    else if (res._buffer) {
+        this.push(res._buffer);
+        res._next();
+    }
 };
 
 Parser.prototype._write = function (buf, enc, next) {
-    var keyName;
-    var req = this.request;
+    if (this._state === states.BODY) {
+        // handle post data, whatever
+        return next();
+    }
     
+    var req = this.request;
     var i = 0;
     if (this._prev) {
         buf = Buffer.concat([ this._prev, buf ]);
@@ -48,32 +64,32 @@ Parser.prototype._write = function (buf, enc, next) {
             this._prepareRequest();
         }
         else if (buf[i] === 0x0a) {
-            if (this.state === states.GET) {
+            if (this._state === states.GET) {
                 var parts = buf.slice(0, i).toString('utf8').split(' ');
                 req._setMethod(parts[0]);
                 req._setUrl(parts[1]);
                 req._setVersion(parts[2]);
-                this.state = states.KEY;
-                this.lastIndex = i;
+                this._state = states.KEY;
+                this._lastIndex = i;
             }
-            else if (this.state === states.VALUE) {
-                req._setHeader(keyName, buf.slice(this.lastIndex, i));
-                keyName = null;
-                this.lastIndex = i;
-                this.state = states.KEY;
+            else if (this._state === states.VALUE) {
+                req._setHeader(this._keyName, buf.slice(this._lastIndex, i));
+                this._keyName = null;
+                this._lastIndex = i;
+                this._state = states.KEY;
             }
-            else if (this.state === states.KEY) {
-                this.lastIndex = i;
+            else if (this._state === states.KEY) {
+                this._lastIndex = i;
             }
         }
-        else if (this.state === states.KEY && buf[i] === 58) {
-            keyName = buf.slice(this.lastIndex, i);
-            this.lastIndex = i + 1;
-            this.state = states.VALUE;
+        else if (this._state === states.KEY && buf[i] === 58) {
+            this._keyName = buf.slice(this._lastIndex, i);
+            this._lastIndex = i + 1;
+            this._state = states.VALUE;
         }
     }
     
-    if (this.state !== states.BODY) {
+    if (this._state !== states.BODY) {
         this._prev = buf;
     }
     
