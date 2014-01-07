@@ -50,9 +50,9 @@ Parser.prototype._read = function () {
         
         if (!this._sentHeader) {
             this._sentHeader = true;
-            this.push(res._getHeaderBuffer());
+            this.push(Buffer.concat([ res._getHeaderBuffer(), buf ]));
         }
-        this.push(buf);
+        else this.push(buf);
         if (next) next();
     }
     else {
