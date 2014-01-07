@@ -65,17 +65,19 @@ Response.prototype._write = function (buf, enc, next) {
 
 Response.prototype._encode = function (buf) {
     var enc = this._getHeader('transfer-encoding');
-    if (enc === 'plain') return buf;
     if (enc === 'chunked') {
         var pre = buf.length.toString(16) + '\r\n';
-        var len = pre.length + buf.length;
+        var len = pre.length + buf.length + 2;
         var b = new Buffer(len);
         for (var i = 0; i < pre.length; i++) {
             b[i] = pre.charCodeAt(i);
         }
+        b[len-2] = 0x0d;
+        b[len-1] = 0x0a;
         buf.copy(b, pre.length);
         return b;
     }
+    return buf;
 };
 
 Response.prototype._finishEncode = function () {
@@ -83,12 +85,14 @@ Response.prototype._finishEncode = function () {
     this._finished = true;
     
     if (enc !== 'chunked') return;
+    
+    var trailing = Buffer('0\r\n\r\n');
     if (this._buffer) {
         // does this case ever happen?
-        this._buffer = Buffer.concat([ this._buffer, '0\r\n' ]);
+        this._buffer = Buffer.concat([ this._buffer, trailing ]);
     }
     else {
-        this._buffer = Buffer('0\r\n');
+        this._buffer = trailing;
     }
     if (this._ondata) this._ondata();
 };
