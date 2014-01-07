@@ -8,17 +8,36 @@ function Response (req) {
     Writable.call(this);
     this.statusCode = 200;
     this._request = req;
-    this._headers = {
-        Date: new Date().toGMTString(),
-        Connection: 'keep-alive',
-        'Transfer-Encoding': 'chunked'
-    };
-    this._encoding = 'chunked';
+    this._headers = {};
+    this._headerKeys = {};
+    
+    this.setHeader('Date', new Date().toGMTString());
+    
+    // todo: check the req.headers and req.httpVersion first
+    this.setHeader('Connection', 'keep-alive');
+    this.setHeader('Transfer-Encoding', 'chunked');
     
     this.on('finish', this._finishEncode);
 }
 
-Response.prototype._getHeader = function () {
+Response.prototype.setHeader = function (key, value) {
+    var lkey = key.toLowerCase();
+    this._headers[lkey] = value;
+    this._headerKeys[lkey] = key;
+};
+
+Response.prototype.removeHeader = function (key) {
+    var lkey = key.toLowerCase();
+    delete this._headers[lkey];
+    delete this._headerKeys[lkey];
+};
+
+Response.prototype._getHeader = function (key) {
+    var lkey = key.toLowerCase();
+    return this._headers[lkey];
+};
+
+Response.prototype._getHeaderBuffer = function () {
     var req = this._request;
     var keys = Object.keys(this._headers);
     var code = parseInt(this.statusCode);
@@ -28,7 +47,7 @@ Response.prototype._getHeader = function () {
     
     for (var i = 0, len = keys.length; i < len; i++) {
         var key = keys[i];
-        lines.push(key + ': ' + this._headers[key]);
+        lines.push(this._headerKeys[key] + ': ' + this._headers[key]);
     }
     
     return Buffer(lines.join('\n') + '\n\n');
@@ -45,7 +64,7 @@ Response.prototype._write = function (buf, enc, next) {
 };
 
 Response.prototype._encode = function (buf) {
-    var enc = this._encoding;
+    var enc = this._getHeader('transfer-encoding');
     if (enc === 'plain') return buf;
     if (enc === 'chunked') {
         var pre = buf.length.toString(16) + '\r\n';
@@ -60,15 +79,15 @@ Response.prototype._encode = function (buf) {
 };
 
 Response.prototype._finishEncode = function () {
-    var enc = this._encoding;
+    var enc = this._getHeader('transfer-encoding');
     this._finished = true;
     
     if (enc !== 'chunked') return;
     if (this._buffer) {
-        console.log('!! exists'); 
+        // does this case ever happen?
+        this._buffer = Buffer.concat([ this._buffer, '0\r\n' ]);
     }
     else {
-        console.log('!! no buffer');
         this._buffer = Buffer('0\r\n');
     }
     if (this._ondata) this._ondata();

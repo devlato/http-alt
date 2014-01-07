@@ -45,8 +45,8 @@ Parser.prototype._read = function () {
         res._next = null;
         
         if (!this._sentHeader) {
-            this.push(res._getHeader());
             this._sentHeader = true;
+            this.push(res._getHeaderBuffer());
         }
         this.push(buf);
         if (next) next();
