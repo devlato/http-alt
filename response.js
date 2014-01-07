@@ -9,6 +9,9 @@ var STATUS_CODES = {
     // ...etc...
 };
 
+var TRAILING_CHUNKED = Buffer('0\r\n\r\n');
+var CRLF = Buffer('\r\n');
+
 function Response (req) {
     Writable.call(this);
     this.statusCode = 200;
@@ -91,7 +94,7 @@ Response.prototype._encode = function (buf) {
     var enc = this._getHeader('transfer-encoding');
     if (enc === 'chunked') {
         var pre = buf.length.toString(16) + '\r\n';
-        return [ Buffer(pre), buf, Buffer('\r\n') ];
+        return [ Buffer(pre), buf, CRLF ];
     }
     return buf;
 };
@@ -102,13 +105,17 @@ Response.prototype._finishEncode = function () {
     
     if (enc !== 'chunked') return;
     
-    var trailing = Buffer('0\r\n\r\n');
     if (this._buffer) {
         // does this case ever happen?
-        this._buffer = [ this._buffer, trailing ];
+        if (Array.isArray(this._buffer)) {
+            this._buffer.push(TRAILING_CHUNKED);
+        }
+        else {
+            this._buffer = [ this._buffer, TRAILING_CHUNKED ];
+        }
     }
     else {
-        this._buffer = trailing;
+        this._buffer = TRAILING_CHUNKED;
     }
     if (this._ondata) this._ondata();
 };
