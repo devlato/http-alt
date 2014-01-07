@@ -80,7 +80,7 @@ Parser.prototype._write = function (buf, enc, next) {
         }
         else if (buf[i] === 0x0a) {
             if (this._state === states.GET) {
-                var parts = buf.slice(0, i).toString('utf8').split(' ');
+                var parts = buf.slice(0, i).toString('utf8').trim().split(' ');
                 req._setMethod(parts[0]);
                 req._setUrl(parts[1]);
                 req._setVersion(parts[2]);
