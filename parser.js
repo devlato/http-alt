@@ -44,16 +44,17 @@ Parser.prototype._read = function () {
         res._buffer = null;
         res._next = null;
         
-        if (!res._sentHeader) {
+        if (!this._sentHeader) {
             this.push(res._getHeader());
+            this._sentHeader = true;
         }
-        this.push(res._buffer);
-        next();
+        this.push(buf);
+        if (next) next();
     }
     else {
         res._ondata = function () { self._read() };
-        console.log('what now?');
     }
+    if (res && res._finished) this.push(null);
 };
 
 Parser.prototype._write = function (buf, enc, next) {

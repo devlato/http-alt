@@ -1,4 +1,4 @@
-var Writable = require('readable-stream').Writable;
+var Writable = require('stream').Writable;
 var inherits = require('util').inherits;
 
 inherits(Response, Writable);
@@ -13,6 +13,9 @@ function Response (req) {
         Connection: 'keep-alive',
         'Transfer-Encoding': 'chunked'
     };
+    this._encoding = 'chunked';
+    
+    this.on('finish', this._finishEncode);
 }
 
 Response.prototype._getHeader = function () {
@@ -32,11 +35,41 @@ Response.prototype._getHeader = function () {
 }
 
 Response.prototype._write = function (buf, enc, next) {
-    this._buffer = buf;
+    this._buffer = this._encode(buf);
     this._next = next;
     
     if (this._ondata) {
         this._ondata();
         this._ondata = null;
     }
+};
+
+Response.prototype._encode = function (buf) {
+    var enc = this._encoding;
+    if (enc === 'plain') return buf;
+    if (enc === 'chunked') {
+        var pre = buf.length.toString(16) + '\r\n';
+        var len = pre.length + buf.length;
+        var b = new Buffer(len);
+        for (var i = 0; i < pre.length; i++) {
+            b[i] = pre.charCodeAt(i);
+        }
+        buf.copy(b, pre.length);
+        return b;
+    }
+};
+
+Response.prototype._finishEncode = function () {
+    var enc = this._encoding;
+    this._finished = true;
+    
+    if (enc !== 'chunked') return;
+    if (this._buffer) {
+        console.log('!! exists'); 
+    }
+    else {
+        console.log('!! no buffer');
+        this._buffer = Buffer('0\r\n');
+    }
+    if (this._ondata) this._ondata();
 };
