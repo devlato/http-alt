@@ -7,12 +7,12 @@ var Response = require('./response.js');
 module.exports = Parser;
 inherits(Parser, Duplex);
 
-var states = { GET: 0, KEY: 1, VALUE: 2, BODY: 3 };
+var states = { METHOD: 0, KEY: 1, VALUE: 2, BODY: 3 };
 
 function Parser (cb) {
     Duplex.call(this);
     this.request = new Request;
-    this._state = states.GET;
+    this._state = states.METHOD;
     this._lastIndex = 0;
     this._cb = cb;
 }
@@ -54,7 +54,10 @@ Parser.prototype._read = function () {
     else {
         res._ondata = function () { self._read() };
     }
-    if (res && res._finished) this.push(null);
+    if (res && res._finished) {
+        this.push(null);
+        this.emit('complete');
+    }
 };
 
 Parser.prototype._write = function (buf, enc, next) {
@@ -79,7 +82,7 @@ Parser.prototype._write = function (buf, enc, next) {
             this._prepareRequest();
         }
         else if (buf[i] === 0x0a) {
-            if (this._state === states.GET) {
+            if (this._state === states.METHOD) {
                 var parts = buf.slice(0, i).toString('utf8').trim().split(' ');
                 req._setMethod(parts[0]);
                 req._setUrl(parts[1]);
