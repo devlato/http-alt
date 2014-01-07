@@ -17,6 +17,8 @@ function Server () {
     net.Server.call(self);
     
     this.on('connection', function (stream) {
+        stream.on('error', function () {});
+        
         var parser = new Parser(function (req, res) {
             self.emit('request', req, res);
         });
