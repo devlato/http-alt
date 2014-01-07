@@ -4,6 +4,11 @@ var inherits = require('util').inherits;
 inherits(Response, Writable);
 module.exports = Response;
 
+var STATUS_CODES = {
+    200: 'OK'
+    // ...etc...
+};
+
 function Response (req) {
     Writable.call(this);
     this.statusCode = 200;
@@ -32,6 +37,23 @@ Response.prototype.removeHeader = function (key) {
     delete this._headerKeys[lkey];
 };
 
+Response.prototype.writeHead = function (code, msg, headers) {
+    this.statusCode = code;
+    
+    if (typeof msg === 'string') {
+        this.statusMessage = msg;
+    }
+    else headers = msg;
+    
+    if (headers && typeof headers === 'object') {
+        var keys = Object.keys(headers);
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            this.setHeader(key, headers[key]);
+        }
+    }
+};
+
 Response.prototype._getHeader = function (key) {
     var lkey = key.toLowerCase();
     return this._headers[lkey];
@@ -43,7 +65,10 @@ Response.prototype._getHeaderBuffer = function () {
     var code = parseInt(this.statusCode);
     var ok = code >= 200 && code < 300;
     
-    var lines = [ 'HTTP/' + req.httpVersion + ' ' + code + (ok ? ' OK' : '') ];
+    var lines = [
+        'HTTP/' + req.httpVersion + ' ' + code + ' '
+        + (this.statusMessage || STATUS_CODES[code])
+    ]
     
     for (var i = 0, len = keys.length; i < len; i++) {
         var key = keys[i];
