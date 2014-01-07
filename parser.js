@@ -9,12 +9,13 @@ inherits(Parser, Duplex);
 
 var states = { METHOD: 0, KEY: 1, VALUE: 2, BODY: 3 };
 
-function Parser (cb) {
+function Parser (cb, stream) {
     Duplex.call(this);
     this.request = new Request;
     this._state = states.METHOD;
     this._lastIndex = 0;
     this._cb = cb;
+    this._stream = stream;
 }
 
 Parser.prototype._prepareRequest = function () {
@@ -39,6 +40,9 @@ Parser.prototype._read = function () {
     }
     else if (res._buffer) {
         var buf = res._buffer;
+        if (Array.isArray(buf)) {
+            buf = Buffer.concat(buf);
+        }
         var next = res._next;
         
         res._buffer = null;

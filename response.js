@@ -91,15 +91,7 @@ Response.prototype._encode = function (buf) {
     var enc = this._getHeader('transfer-encoding');
     if (enc === 'chunked') {
         var pre = buf.length.toString(16) + '\r\n';
-        var len = pre.length + buf.length + 2;
-        var b = new Buffer(len);
-        for (var i = 0; i < pre.length; i++) {
-            b[i] = pre.charCodeAt(i);
-        }
-        b[len-2] = 0x0d;
-        b[len-1] = 0x0a;
-        buf.copy(b, pre.length);
-        return b;
+        return [ Buffer(pre), buf, Buffer('\r\n') ];
     }
     return buf;
 };
@@ -113,7 +105,7 @@ Response.prototype._finishEncode = function () {
     var trailing = Buffer('0\r\n\r\n');
     if (this._buffer) {
         // does this case ever happen?
-        this._buffer = Buffer.concat([ this._buffer, trailing ]);
+        this._buffer = [ this._buffer, trailing ];
     }
     else {
         this._buffer = trailing;
