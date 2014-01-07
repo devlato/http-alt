@@ -62,8 +62,7 @@ Response.prototype._getHeader = function (key) {
 Response.prototype._getHeaderBuffer = function () {
     var req = this._request;
     var keys = Object.keys(this._headers);
-    var code = parseInt(this.statusCode);
-    var ok = code >= 200 && code < 300;
+    var code = this.statusCode;
     
     var lines = [
         'HTTP/' + req.httpVersion + ' ' + code + ' '
